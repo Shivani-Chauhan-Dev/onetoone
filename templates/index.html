@@ -1,0 +1,331 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>WebSocket Chat</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    #chat { border: 1px solid #ccc; height: 300px; overflow-y: scroll; padding: 10px; margin-bottom: 10px; }
+    input, button { padding: 8px; margin: 4px; }
+  </style>
+</head>
+<body>
+  <h2>WebSocket Chat</h2>
+
+  <div>
+    <label>Your ID:</label><input type="text" id="userId" placeholder="e.g., user1">
+    <label>Your Name:</label><input type="text" id="userName" placeholder="e.g., Alice">
+    <button onclick="connect()">Connect</button>
+  </div>
+
+  <div id="chat"></div>
+
+  <div>
+    <label>To (ID):</label><input type="text" id="toUserId" placeholder="e.g., user2">
+    <label>To (Name):</label><input type="text" id="toUserName" placeholder="e.g., Bob">
+    <br>
+    <input type="text" id="messageInput" placeholder="Type your message here..." style="width: 60%;">
+    <button onclick="sendMessage()">Send</button>
+  </div>
+
+  <script>
+    let socket;
+    let currentUser = {};
+
+    function connect() {
+      const id = document.getElementById('userId').value;
+      const name = document.getElementById('userName').value;
+      currentUser = { id, name };
+
+      socket = new WebSocket("ws://localhost:8775");
+
+      socket.onopen = () => {
+        console.log("Connected to WebSocket");
+        socket.send(JSON.stringify(currentUser));
+      };
+
+      socket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        const chatBox = document.getElementById("chat");
+
+        const fromUser = data.from ? data.from.name : "System";
+        const message = data.message;
+
+        chatBox.innerHTML += `<div><strong>${fromUser}:</strong> ${message}</div>`;
+        chatBox.scrollTop = chatBox.scrollHeight;
+      };
+
+      socket.onclose = () => {
+        console.log("Disconnected from WebSocket");
+      };
+    }
+
+    function sendMessage() {
+      const toId = document.getElementById('toUserId').value;
+      const toName = document.getElementById('toUserName').value;
+      const message = document.getElementById('messageInput').value;
+
+      const msgData = {
+        sender: currentUser,
+        to: { id: toId, name: toName },
+        message: message
+      };
+
+      socket.send(JSON.stringify(msgData));
+      document.getElementById('messageInput').value = '';
+    }
+  </script>
+</body>
+</html> -->
+
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sports Chat</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    #chat { border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: scroll; }
+    .msg { margin: 5px 0; }
+    .you { color: blue; }
+    .other { color: green; }
+  </style>
+</head>
+<body>
+  <h2>Sports Chat</h2>
+
+  <label>Your ID: <input id="yourId" type="number" value="1"></label><br>
+  <label>Your Name: <input id="yourName" type="text" value="Athlete One"></label><br>
+  <label>Your Role: 
+    <select id="yourRole">
+      <option value="athlete">Athlete</option>
+      <option value="coach">Coach</option>
+    </select>
+  </label><br><br>
+
+  <label>To ID: <input id="toId" type="number" value="2"></label><br>
+  <label>To Name: <input id="toName" type="text" value="Coach A"></label><br>
+  <label>To Role: 
+    <select id="toRole">
+      <option value="coach">Coach</option>
+      <option value="athlete">Athlete</option>
+    </select>
+  </label><br><br>
+
+  <div id="chat"></div>
+
+  <input id="messageInput" type="text" placeholder="Type a message..." />
+  <button onclick="sendMessage()">Send</button>
+
+  <script>
+    let socket;
+    const chatBox = document.getElementById("chat");
+
+    function connectWebSocket() {
+      const yourId = document.getElementById("yourId").value;
+      const yourName = document.getElementById("yourName").value;
+      const yourRole = document.getElementById("yourRole").value;
+
+      // Connect to WebSocket server
+      socket = new WebSocket("ws://localhost:8785");
+
+      socket.onopen = () => {
+        console.log("Connected to WebSocket");
+        // Send initial user identification
+        socket.send(JSON.stringify({
+          id: parseInt(yourId),
+          name: yourName,
+          role: yourRole
+        }));
+      };
+
+      socket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        const msg = document.createElement("div");
+        msg.classList.add("msg", "other");
+        msg.textContent = `${data.from.name}: ${data.message}`;
+        chatBox.appendChild(msg);
+        chatBox.scrollTop = chatBox.scrollHeight;
+      };
+
+      socket.onerror = (error) => console.error("WebSocket error:", error);
+      socket.onclose = () => console.warn("WebSocket closed");
+    }
+
+    function sendMessage() {
+      const message = document.getElementById("messageInput").value;
+      if (!message) return;
+
+      const yourId = document.getElementById("yourId").value;
+      const yourName = document.getElementById("yourName").value;
+      const yourRole = document.getElementById("yourRole").value;
+
+      const toId = document.getElementById("toId").value;
+      const toName = document.getElementById("toName").value;
+      const toRole = document.getElementById("toRole").value;
+
+      const msg = {
+        type: "chat",
+        sender: { id: parseInt(yourId), name: yourName, role: yourRole },
+        to: { id: parseInt(toId), name: toName, role: toRole },
+        message: message
+      };
+
+      socket.send(JSON.stringify(msg));
+
+      const msgDiv = document.createElement("div");
+      msgDiv.classList.add("msg", "you");
+      msgDiv.textContent = `You: ${message}`;
+      chatBox.appendChild(msgDiv);
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+      document.getElementById("messageInput").value = "";
+    }
+
+    window.onload = connectWebSocket;
+  </script>
+</body>
+</html>
+ -->
+ <!DOCTYPE html>
+ <html lang="en">
+ <head>
+   <meta charset="UTF-8" />
+   <title>Chat App</title>
+   <style>
+     body { font-family: Arial, sans-serif; padding: 20px; }
+     #chat-box { border: 1px solid #ccc; height: 300px; overflow-y: scroll; padding: 10px; margin-bottom: 10px; }
+     #typing-indicator { font-style: italic; color: gray; }
+     .message { margin-bottom: 5px; }
+     .sender { font-weight: bold; }
+   </style>
+ </head>
+ <body>
+   <h2>Real-time Chat</h2>
+ 
+   <div>
+     <label>User ID: <input type="number" id="user-id" /></label>
+     <label>Role:
+       <select id="user-role">
+         <option value="athlete">Athlete</option>
+         <option value="coach">Coach</option>
+       </select>
+     </label>
+     <button onclick="connect()">Connect</button>
+   </div>
+ 
+   <div id="chat-section" style="display: none;">
+     <h3>Chat</h3>
+     <div>
+       <label>To (ID): <input type="number" id="to-id" /></label>
+       <label>Role:
+         <select id="to-role">
+           <option value="athlete">Athlete</option>
+           <option value="coach">Coach</option>
+         </select>
+       </label>
+     </div>
+ 
+     <div id="chat-box"></div>
+     <div id="typing-indicator"></div>
+ 
+     <input type="text" id="message-input" placeholder="Type a message..." oninput="sendTyping()" />
+     <button onclick="sendMessage()">Send</button>
+   </div>
+ 
+   <script>
+     let ws;
+     let currentUser = {};
+ 
+     function connect() {
+       const userId = document.getElementById("user-id").value;
+       const userRole = document.getElementById("user-role").value;
+ 
+       if (!userId || !userRole) {
+         alert("Please enter user ID and role.");
+         return;
+       }
+ 
+       currentUser = { id: parseInt(userId), role: userRole };
+       ws = new WebSocket("ws://localhost:8785");
+ 
+       ws.onopen = () => {
+         ws.send(JSON.stringify(currentUser));
+         document.getElementById("chat-section").style.display = "block";
+       };
+ 
+       ws.onmessage = (event) => {
+         const data = JSON.parse(event.data);
+         if (data.type === "chat") {
+           addMessage(data.from, data.message);
+         } else if (data.type === "typing") {
+           showTyping(data.from);
+         }
+       };
+ 
+       ws.onclose = () => {
+         alert("WebSocket disconnected");
+         document.getElementById("chat-section").style.display = "none";
+       };
+     }
+ 
+     function sendMessage() {
+       const toId = parseInt(document.getElementById("to-id").value);
+       const toRole = document.getElementById("to-role").value;
+       const message = document.getElementById("message-input").value;
+ 
+       if (!toId || !message) {
+         alert("Enter receiver ID and message.");
+         return;
+       }
+ 
+       const msgData = {
+         type: "chat",
+         sender: currentUser,
+         to: { id: toId, role: toRole },
+         message: message
+       };
+ 
+       ws.send(JSON.stringify(msgData));
+       addMessage(currentUser, message);
+       document.getElementById("message-input").value = "";
+       document.getElementById("typing-indicator").innerText = "";
+     }
+ 
+     function sendTyping() {
+       const toId = parseInt(document.getElementById("to-id").value);
+       const toRole = document.getElementById("to-role").value;
+ 
+       if (!toId) return;
+ 
+       const typingData = {
+         type: "typing",
+         sender: currentUser,
+         to: { id: toId, role: toRole }
+       };
+ 
+       ws.send(JSON.stringify(typingData));
+     }
+ 
+     function addMessage(sender, message) {
+       const chatBox = document.getElementById("chat-box");
+       const senderName = `${sender.role}-${sender.id}`;
+       const div = document.createElement("div");
+       div.className = "message";
+       div.innerHTML = `<span class="sender">${senderName}:</span> ${message}`;
+       chatBox.appendChild(div);
+       chatBox.scrollTop = chatBox.scrollHeight;
+     }
+ 
+     function showTyping(from) {
+       const name = `${from.role}-${from.id}`;
+       document.getElementById("typing-indicator").innerText = `${name} is typing...`;
+ 
+       setTimeout(() => {
+         document.getElementById("typing-indicator").innerText = "";
+       }, 2000);
+     }
+   </script>
+ </body>
+ </html>
+ 
