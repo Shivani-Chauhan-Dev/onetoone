@@ -166,7 +166,9 @@
 import asyncio
 import websockets
 import json
+import os
 
+PORT = int(os.environ.get("PORT", 10000))
 # Dictionaries to store connections and offline messages
 connected_clients = {}
 offline_messages = {}
@@ -219,8 +221,10 @@ async def handle_connection(websocket, path):
 
 # Start the WebSocket server
 async def main():
-    async with websockets.serve(handle_connection, "localhost", 875):
-        print("Server is running on ws://localhost:8775")
+    # async with websockets.serve(handle_connection, "0.0.0.0", 8775):
+    async with websockets.serve(handle_connection, "0.0.0.0", PORT):
+        # print("Server is running on ws://localhost:8775")
+        print(f"Running on ws://0.0.0.0:{PORT}")
         await asyncio.Future()  # Run forever
 
 if __name__ == "__main__":
