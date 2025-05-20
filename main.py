@@ -237,8 +237,9 @@ import json
 from datetime import datetime
 from flask import Flask
 import requests
+import os
 
-
+PORT = int(os.environ.get("PORT", 10000))
 connected_clients = {}         # user_id -> websocket
 offline_messages = {}          # user_id -> list of messages
 
@@ -361,8 +362,10 @@ async def handle_connection(websocket):
         print(f"Connected clients after disconnection: {list(connected_clients.keys())}")
 
 async def main():
-    async with websockets.serve(handle_connection, "localhost", 8775):
-        print("WebSocket server running at ws://localhost:8775")
+    # async with websockets.serve(handle_connection, "localhost", 8775):
+    async with websockets.serve(handle_connection, "0.0.0.0", PORT):
+        # print("WebSocket server running at ws://localhost:8775")
+        print(f"Running on ws://0.0.0.0:{PORT}")
         await asyncio.Future()  # Run forever
 
 if __name__ == "__main__":
