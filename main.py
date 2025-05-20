@@ -160,71 +160,209 @@
 
 
 
+# ===============================================================================================================================================
 
 
+# import asyncio
+# import websockets
+# import json
+# import os
+
+# PORT = int(os.environ.get("PORT", 10000))
+# # Dictionaries to store connections and offline messages
+# connected_clients = {}
+# offline_messages = {}
+
+# async def handle_connection(websocket, path):
+#     # Receive the username from the client upon connection
+#     data = await websocket.recv()
+#     user = json.loads(data)
+#     print(f"{user} connected.")
+#     connected_clients[user['id']] = websocket
+#     print(f"{user['name']} connected.")
+#     print(f"Connected clients: {connected_clients}")
+
+#     # Send offline messages if any
+#     if user['id'] in offline_messages:
+#         print(f"Sending offline messages to {user['name']}")
+#         for message in offline_messages[user['id']]:
+#             await websocket.send(json.dumps(message))
+#         # Clear the offline messages after sending
+#         del offline_messages[user['id']]
+
+#     try:
+#         while True:
+#             # Receive message from the client
+#             data = await websocket.recv()
+#             msg_data = json.loads(data)
+
+#             reciver_recipient = msg_data["to"]
+#             msg = msg_data["message"]
+#             sender = msg_data["sender"]
+#             print(f"Message from {sender['name']} to {reciver_recipient['name']}: {msg}")
+
+#             # Check if the recipient is connected
+#             if reciver_recipient['id'] in connected_clients:
+#                 reciver_recipient_ws = connected_clients[reciver_recipient['id']]
+#                 await reciver_recipient_ws.send(json.dumps({"from": sender, "message": msg}))
+#             else:
+#                 print(f"User {reciver_recipient['name']} is offline. Storing message.")
+#                 # Store the message in offline_messages
+#                 if reciver_recipient['id'] not in offline_messages:
+#                     offline_messages[reciver_recipient['id']] = []
+#                 offline_messages[reciver_recipient['id']].append({"from": sender, "message": msg})
+#     except websockets.exceptions.ConnectionClosed:
+#         print(f"{user['name']} disconnected.")
+#     finally:
+#         # Remove the user from connected clients
+#         if user['id'] in connected_clients:
+#             del connected_clients[user['id']]
+#         print(f"Connected clients after disconnection: {connected_clients}")
+
+# # Start the WebSocket server
+# async def main():
+#     # async with websockets.serve(handle_connection, "0.0.0.0", 8775):
+#     async with websockets.serve(handle_connection, "0.0.0.0", PORT):
+#         # print("Server is running on ws://localhost:8775")
+#         print(f"Running on ws://0.0.0.0:{PORT}")
+#         await asyncio.Future()  # Run forever
+
+# if __name__ == "__main__":
+#     asyncio.run(main())
+# ================================================================================================================
 
 import asyncio
 import websockets
 import json
-import os
+from datetime import datetime
+from flask import Flask
+import requests
 
-PORT = int(os.environ.get("PORT", 10000))
-# Dictionaries to store connections and offline messages
-connected_clients = {}
-offline_messages = {}
 
-async def handle_connection(websocket, path):
-    # Receive the username from the client upon connection
-    data = await websocket.recv()
-    user = json.loads(data)
-    print(f"{user} connected.")
-    connected_clients[user['id']] = websocket
-    print(f"{user['name']} connected.")
-    print(f"Connected clients: {connected_clients}")
+connected_clients = {}         # user_id -> websocket
+offline_messages = {}          # user_id -> list of messages
 
-    # Send offline messages if any
-    if user['id'] in offline_messages:
-        print(f"Sending offline messages to {user['name']}")
-        for message in offline_messages[user['id']]:
-            await websocket.send(json.dumps(message))
-        # Clear the offline messages after sending
-        del offline_messages[user['id']]
 
+
+async def handle_connection(websocket):
     try:
+        # Initial user connection handshake
+        data = await websocket.recv()
+        print("Initial connection data:", data)
+
+        user = json.loads(data)
+        user_id = user.get("id")
+        user_role = user.get("role")
+
+        if not user_id or not user_role:
+            await websocket.send(json.dumps({"error": "Missing id or role"}))
+            return
+
+        user_name = f"{user_role.capitalize()}-{user_id}"
+        connected_clients[user_id] = websocket
+        print(f"{user_role} {user_name} connected.")
+        print(f"Connected clients: {list(connected_clients.keys())}")
+
+        # Send any stored offline messages
+        if user_id in offline_messages:
+            for msg in offline_messages[user_id]:
+                await websocket.send(json.dumps(msg))
+            del offline_messages[user_id]  # Clear after sending
+
+        # Message receive loop
         while True:
-            # Receive message from the client
-            data = await websocket.recv()
-            msg_data = json.loads(data)
+            try:
+                data = await websocket.recv()
+                print("Received message:", data)
 
-            reciver_recipient = msg_data["to"]
-            msg = msg_data["message"]
-            sender = msg_data["sender"]
-            print(f"Message from {sender['name']} to {reciver_recipient['name']}: {msg}")
+                msg_data = json.loads(data)
+                msg_type = msg_data.get("type")
 
-            # Check if the recipient is connected
-            if reciver_recipient['id'] in connected_clients:
-                reciver_recipient_ws = connected_clients[reciver_recipient['id']]
-                await reciver_recipient_ws.send(json.dumps({"from": sender, "message": msg}))
-            else:
-                print(f"User {reciver_recipient['name']} is offline. Storing message.")
-                # Store the message in offline_messages
-                if reciver_recipient['id'] not in offline_messages:
-                    offline_messages[reciver_recipient['id']] = []
-                offline_messages[reciver_recipient['id']].append({"from": sender, "message": msg})
+                if not msg_type:
+                    await websocket.send(json.dumps({"error": "Missing message type"}))
+                    continue
+
+                
+                # === Handle Chat Message ===
+                if msg_type == "chat":
+                    sender = msg_data.get("sender")
+                    receiver = msg_data.get("to")
+                    message_text = msg_data.get("message")
+
+                    if not sender or not receiver or not message_text:
+                        await websocket.send(json.dumps({"error": "Incomplete chat message"}))
+                        continue
+
+                    
+                    try:
+                        res = requests.post(
+                            # "http://127.0.0.1:5004/chat",
+                            "https://sports-backend-j4bp.onrender.com/chat",
+                            json={
+                                "athlete_id": sender["id"] if sender["role"] == "athlete" else receiver["id"],
+                                "coach_id": sender["id"] if sender["role"] == "coach" else receiver["id"],
+                                "message": message_text
+                            }
+                        )
+                        if res.status_code != 201:
+                            print("Failed to save chat:", res.json())
+                            await websocket.send(json.dumps({"error": "Failed to save chat message"}))
+                            continue
+
+                        chat_response = res.json()
+                        timestamp = datetime.utcnow().isoformat()
+
+                    except Exception as e:
+                        print("Error while sending chat to backend:", e)
+                        await websocket.send(json.dumps({"error": "Could not contact backend"}))
+                        continue
+
+                    # Continue with WebSocket delivery
+                    response_payload = {
+                        "type": "chat",
+                        "from": sender,
+                        "message": message_text,
+                        "timestamp": timestamp
+                    }
+
+                    recipient_ws = connected_clients.get(receiver["id"])
+                    if recipient_ws:
+                        await recipient_ws.send(json.dumps(response_payload))
+                    else:
+                        print(f"User {receiver['id']} is offline. Storing message.")
+                        offline_messages.setdefault(receiver["id"], []).append(response_payload)
+
+
+                elif msg_type == "typing":
+                    sender = msg_data.get("sender")
+                    receiver = msg_data.get("to")
+                    if not sender or not receiver:
+                        continue
+
+                    recipient_ws = connected_clients.get(receiver["id"])
+                    if recipient_ws:
+                        await recipient_ws.send(json.dumps({
+                            "type": "typing",
+                            "from": sender
+                        }))
+
+            except json.JSONDecodeError:
+                await websocket.send(json.dumps({"error": "Invalid JSON"}))
+            except Exception as err:
+                print("Error during message processing:", err)
+
     except websockets.exceptions.ConnectionClosed:
-        print(f"{user['name']} disconnected.")
+        print(f"{user_name if 'user_name' in locals() else 'A user'} disconnected.")
+    except Exception as outer_exc:
+        print("Connection error:", outer_exc)
     finally:
-        # Remove the user from connected clients
-        if user['id'] in connected_clients:
-            del connected_clients[user['id']]
-        print(f"Connected clients after disconnection: {connected_clients}")
+        if 'user_id' in locals() and user_id in connected_clients:
+            del connected_clients[user_id]
+        print(f"Connected clients after disconnection: {list(connected_clients.keys())}")
 
-# Start the WebSocket server
 async def main():
-    # async with websockets.serve(handle_connection, "0.0.0.0", 8775):
-    async with websockets.serve(handle_connection, "0.0.0.0", PORT):
-        # print("Server is running on ws://localhost:8775")
-        print(f"Running on ws://0.0.0.0:{PORT}")
+    async with websockets.serve(handle_connection, "localhost", 8775):
+        print("WebSocket server running at ws://localhost:8775")
         await asyncio.Future()  # Run forever
 
 if __name__ == "__main__":
