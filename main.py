@@ -359,7 +359,7 @@ async def handle_connection(websocket):
         if 'user_id' in locals() and user_id in connected_clients:
             del connected_clients[user_id]
         print(f"Connected clients after disconnection: {list(connected_clients.keys())}")
-
+        await websocket.close()
 async def main():
     # async with websockets.serve(handle_connection, "localhost", 8775):
     async with websockets.serve(handle_connection, "0.0.0.0", PORT):
